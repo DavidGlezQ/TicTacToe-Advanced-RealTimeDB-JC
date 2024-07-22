@@ -12,7 +12,7 @@ class HomeViewModel @Inject constructor(private val firebaseService: FirebaseSer
     ViewModel() {
 
     fun onCreateGame() {
-        firebaseService.createGame(gameData = createNewGame())
+        val gameId = firebaseService.createGame(gameData = createNewGame())
     }
 
     fun onJoinGame(gameId: String) {
