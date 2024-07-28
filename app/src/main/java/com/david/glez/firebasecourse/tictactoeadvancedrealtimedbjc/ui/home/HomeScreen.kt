@@ -40,7 +40,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.weight(2f))
 
-
         JoinGame {
             homeViewModel.onJoinGame(it, navigateToGame)
         }

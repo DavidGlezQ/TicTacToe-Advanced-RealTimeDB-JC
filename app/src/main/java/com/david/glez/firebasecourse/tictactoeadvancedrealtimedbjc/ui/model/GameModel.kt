@@ -1,14 +1,32 @@
 package com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.model
 
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.data.network.model.GameData
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.data.network.model.PlayerData
+
 data class GameModel(
     val board: List<PlayerType>,
     val player1: PlayerModel,
     val player2: PlayerModel?,
     val playerTurn: PlayerModel,
-    val gameId: String
-)
+    val gameId: String,
+    val isGameReady: Boolean = false
+) {
+    fun toData(): GameData {
+        return GameData(
+            board = board.map { it.id },
+            gameId = gameId,
+            playerData1 = player1.toData(),
+            playerData2 = player2?.toData(),
+            playerDataTurn = playerTurn.toData()
+        )
+    }
+}
 
-data class PlayerModel(val userId: String, val playerType: PlayerType)
+data class PlayerModel(val userId: String, val playerType: PlayerType) {
+    fun toData(): PlayerData {
+        return PlayerData(userId = userId, playerType = playerType.id)
+    }
+}
 
 sealed class PlayerType(val id: Int, val symbol: String) {
     object FirstPlayer : PlayerType(2, "X")
@@ -17,7 +35,7 @@ sealed class PlayerType(val id: Int, val symbol: String) {
 
     companion object {
         fun getPlayerById(id: Int?): PlayerType {
-            return when(id) {
+            return when (id) {
                 FirstPlayer.id -> FirstPlayer
                 SecondPlayer.id -> SecondPlayer
                 else -> Empty
@@ -25,13 +43,3 @@ sealed class PlayerType(val id: Int, val symbol: String) {
         }
     }
 }
-
-
-/*
-* data class GameData(
-    val board: List<Int?>? = null,
-    val gameId: String? = null,
-    val playerData1: PlayerData? = null,
-    val playerData2: PlayerData? = null,
-    val playerDataTurn: PlayerData? = null
-) */
