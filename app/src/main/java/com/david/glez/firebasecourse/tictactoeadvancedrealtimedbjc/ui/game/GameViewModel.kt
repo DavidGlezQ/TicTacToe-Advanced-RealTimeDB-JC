@@ -14,14 +14,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class GameViewModel @Inject constructor(private val firebaseService: FirebaseService): ViewModel() {
-
+class GameViewModel @Inject constructor(private val firebaseService: FirebaseService) :
+    ViewModel() {
     private lateinit var userId: String
-
     private var _game = MutableStateFlow<GameModel?>(null)
     val game: StateFlow<GameModel?> = _game
-
-
     fun joinGame(gameId: String, userId: String, owner: Boolean) {
         this.userId = userId
         if (owner) {
@@ -33,11 +30,15 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
 
     private fun joinGameAsGuest(gameId: String) {
         viewModelScope.launch {
-
             firebaseService.joinGame(gameId).take(1).collect {
                 var result = it
                 if (result != null) {
-                    result = result.copy(player2 = PlayerModel(userId = userId, playerType = PlayerType.SecondPlayer))
+                    result = result.copy(
+                        player2 = PlayerModel(
+                            userId = userId,
+                            playerType = PlayerType.SecondPlayer
+                        )
+                    )
                     firebaseService.updateGame(result.toData())
                 }
             }
@@ -56,5 +57,32 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
                 _game.value = result
             }
         }
+    }
+
+    fun onItemSelected(position: Int) {
+        val currentGame = _game.value ?: return
+        if (currentGame.isGameReady && currentGame.board[position] == PlayerType.Empty) {
+            viewModelScope.launch {
+                val newBoard = currentGame.board.toMutableList()
+                newBoard[position] = getPlayer() ?: PlayerType.Empty
+                firebaseService.updateGame(
+                    currentGame.copy(
+                        board = newBoard, playerTurn = getEnemyPlayer()!!
+                    ).toData()
+                )
+            }
+        }
+    }
+
+    private fun getPlayer(): PlayerType? {
+        return when {
+            (game.value?.player1?.userId == userId) -> PlayerType.FirstPlayer
+            (game.value?.player2?.userId == userId) -> PlayerType.SecondPlayer
+            else -> null
+        }
+    }
+
+    private fun getEnemyPlayer(): PlayerModel? {
+        return if (game.value?.player1?.userId == userId) game.value?.player2 else game.value?.player1
     }
 }
