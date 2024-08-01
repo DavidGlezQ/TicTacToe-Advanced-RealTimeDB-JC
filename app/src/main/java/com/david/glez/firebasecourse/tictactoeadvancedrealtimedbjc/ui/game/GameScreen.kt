@@ -34,8 +34,16 @@ fun GameScreen(
         gameViewModel.joinGame(gameId, userId, owner)
     }
     val game: GameModel? by gameViewModel.game.collectAsState()
+    val winner: PlayerType? by gameViewModel.winner.collectAsState()
 
-    Board(game = game, onItemSelected = { gameViewModel.onItemSelected(it) })
+    if (winner != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            val currentWinner = if (winner == PlayerType.FirstPlayer) "Player 1" else "Player 2"
+            Text(text = "Winner is $currentWinner")
+        }
+    } else {
+        Board(game = game, onItemSelected = { gameViewModel.onItemSelected(it) })
+    }
 }
 
 //@Preview(showBackground = true)

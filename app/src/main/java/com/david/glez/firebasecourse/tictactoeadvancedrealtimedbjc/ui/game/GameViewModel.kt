@@ -19,6 +19,8 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
     private lateinit var userId: String
     private var _game = MutableStateFlow<GameModel?>(null)
     val game: StateFlow<GameModel?> = _game
+    private var _winner = MutableStateFlow<PlayerType?>(null)
+    val winner: StateFlow<PlayerType?> = _winner
     fun joinGame(gameId: String, userId: String, owner: Boolean) {
         this.userId = userId
         if (owner) {
@@ -55,6 +57,7 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
             firebaseService.joinGame(gameId).collect {
                 val result = it?.copy(isGameReady = it.player2 != null)
                 _game.value = result
+                verifyWinner()
             }
         }
     }
@@ -71,6 +74,38 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
                     ).toData()
                 )
             }
+        }
+    }
+
+    private fun verifyWinner() {
+        val board = _game.value?.board
+        if (board != null && board.size == 9) {
+            when {
+                isGameWon(board, PlayerType.FirstPlayer) -> {
+                    _winner.value = PlayerType.FirstPlayer
+                }
+
+                isGameWon(board, PlayerType.SecondPlayer) -> {
+                    _winner.value = PlayerType.SecondPlayer
+                }
+            }
+        }
+    }
+
+    private fun isGameWon(board: List<PlayerType>, playerType: PlayerType): Boolean {
+        return when {
+            //Row
+            (board[0] == playerType && board[1] == playerType && board[2] == playerType) -> true
+            (board[3] == playerType && board[4] == playerType && board[5] == playerType) -> true
+            (board[4] == playerType && board[7] == playerType && board[8] == playerType) -> true
+            //Colum
+            (board[0] == playerType && board[3] == playerType && board[6] == playerType) -> true
+            (board[1] == playerType && board[4] == playerType && board[7] == playerType) -> true
+            (board[2] == playerType && board[5] == playerType && board[8] == playerType) -> true
+            //Diagonal
+            (board[0] == playerType && board[4] == playerType && board[8] == playerType) -> true
+            (board[2] == playerType && board[4] == playerType && board[6] == playerType) -> true
+            else -> false
         }
     }
 
