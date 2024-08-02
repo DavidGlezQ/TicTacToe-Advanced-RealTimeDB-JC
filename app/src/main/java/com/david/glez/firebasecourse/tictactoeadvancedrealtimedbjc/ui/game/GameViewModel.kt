@@ -17,10 +17,13 @@ import javax.inject.Inject
 class GameViewModel @Inject constructor(private val firebaseService: FirebaseService) :
     ViewModel() {
     private lateinit var userId: String
+
     private var _game = MutableStateFlow<GameModel?>(null)
     val game: StateFlow<GameModel?> = _game
+
     private var _winner = MutableStateFlow<PlayerType?>(null)
     val winner: StateFlow<PlayerType?> = _winner
+
     fun joinGame(gameId: String, userId: String, owner: Boolean) {
         this.userId = userId
         if (owner) {
@@ -55,16 +58,20 @@ class GameViewModel @Inject constructor(private val firebaseService: FirebaseSer
     private fun joinGameAsOwner(gameId: String) {
         viewModelScope.launch {
             firebaseService.joinGame(gameId).collect {
-                val result = it?.copy(isGameReady = it.player2 != null)
+                val result = it?.copy(isGameReady = it.player2 != null, isMyTurn = isMyTurn(it.playerTurn))
                 _game.value = result
                 verifyWinner()
             }
         }
     }
 
+    private fun isMyTurn(playerModel: PlayerModel): Boolean {
+        return playerModel.userId == userId
+    }
+
     fun onItemSelected(position: Int) {
         val currentGame = _game.value ?: return
-        if (currentGame.isGameReady && currentGame.board[position] == PlayerType.Empty) {
+        if (currentGame.isGameReady && currentGame.board[position] == PlayerType.Empty && isMyTurn(currentGame.playerTurn)) {
             viewModelScope.launch {
                 val newBoard = currentGame.board.toMutableList()
                 newBoard[position] = getPlayer() ?: PlayerType.Empty

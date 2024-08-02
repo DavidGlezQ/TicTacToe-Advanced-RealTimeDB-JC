@@ -52,13 +52,12 @@ fun Board(game: GameModel?, onItemSelected: (Int) -> Unit) {
     if (game == null) return
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = game.gameId)
-        val status = if (game.isGameReady == true) {
+        val status = if (game.isGameReady) {
             if (game.isMyTurn) {
                 "Your turn"
             } else {
                 "Opponent's turn"
             }
-            "Game is ready"
         } else {
             "Game is not ready"
         }
