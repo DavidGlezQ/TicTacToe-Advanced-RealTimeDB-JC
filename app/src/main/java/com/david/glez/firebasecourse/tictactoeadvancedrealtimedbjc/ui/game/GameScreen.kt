@@ -1,14 +1,28 @@
 package com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.game
 
+import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,18 +31,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontWeight.Companion
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.model.GameModel
 import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.model.PlayerType
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.theme.Accent
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.theme.BlueLink
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.theme.Orange1
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.theme.Orange2
+import com.david.glez.firebasecourse.tictactoeadvancedrealtimedbjc.ui.theme.background
 
 @Composable
 fun GameScreen(
     gameViewModel: GameViewModel = hiltViewModel(),
     gameId: String,
     userId: String,
-    owner: Boolean
+    owner: Boolean,
+    navigateToHome: () -> Unit
 ) {
     LaunchedEffect(true) {
         gameViewModel.joinGame(gameId, userId, owner)
@@ -37,9 +64,50 @@ fun GameScreen(
     val winner: PlayerType? by gameViewModel.winner.collectAsState()
 
     if (winner != null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            val currentWinner = if (winner == PlayerType.FirstPlayer) "Player 1" else "Player 2"
-            Text(text = "Winner is $currentWinner")
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(background), contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(24.dp),
+                colors = CardDefaults.cardColors(contentColor = background),
+                border = BorderStroke(2.dp, Orange1),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Congratulations!",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Orange1
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val currentWinner =
+                        if (winner == PlayerType.FirstPlayer) "Player 1" else "Player 2"
+                    Text(text = "Winner is", fontSize = 22.sp, color = Accent)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = currentWinner,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Orange2
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(
+                        onClick = { navigateToHome() },
+                        colors = ButtonDefaults.buttonColors(Orange1)
+                    ) {
+                        Text(text = "Back to home screen!")
+                    }
+                }
+            }
         }
     } else {
         Board(game = game, onItemSelected = { gameViewModel.onItemSelected(it) })
@@ -50,8 +118,23 @@ fun GameScreen(
 @Composable
 fun Board(game: GameModel?, onItemSelected: (Int) -> Unit) {
     if (game == null) return
-    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = game.gameId)
+    val clipBoard: ClipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(background),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = game.gameId, color = BlueLink, modifier = Modifier
+            .padding(24.dp)
+            .clickable {
+                clipBoard.setText(AnnotatedString(game.gameId))
+                Toast
+                    .makeText(context, "Game Id copied", Toast.LENGTH_SHORT)
+                    .show()
+            })
         val status = if (game.isGameReady) {
             if (game.isMyTurn) {
                 "Your turn"
@@ -62,7 +145,14 @@ fun Board(game: GameModel?, onItemSelected: (Int) -> Unit) {
             "Game is not ready"
         }
 
-        Text(text = status)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = status, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Accent)
+            Spacer(modifier = Modifier.width(6.dp))
+            if (!game.isMyTurn || !game.isGameReady)
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Orange1)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row {
             GameItem(game.board[0]) { onItemSelected(0) }
@@ -90,10 +180,16 @@ fun GameItem(playerType: PlayerType, onItemSelected: () -> Unit) {
         modifier = Modifier
             .padding(12.dp)
             .size(64.dp)
-            .border(BorderStroke(2.dp, Color.Black))
+            .border(BorderStroke(2.dp, Accent))
             .clickable { onItemSelected() },
         contentAlignment = Alignment.Center
     ) {
-        Text(text = playerType.symbol)
+        AnimatedContent(targetState = playerType.symbol, label = "") {
+            Text(
+                text = it,
+                color = if (playerType is PlayerType.FirstPlayer) Orange1 else Orange2,
+                fontSize = 22.sp
+            )
+        }
     }
 }
